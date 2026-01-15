@@ -1,0 +1,98 @@
+const express = require('express');
+const router = express.Router();
+const Todo = require('../models/Todo');
+
+// 할일 생성
+router.post('/', async (req, res) => {
+  try {
+    const { title, description } = req.body;
+    
+    if (!title) {
+      return res.status(400).json({ error: '제목은 필수입니다.' });
+    }
+    
+    const todo = new Todo({
+      title,
+      description: description || ''
+    });
+    
+    const savedTodo = await todo.save();
+    res.status(201).json(savedTodo);
+  } catch (error) {
+    console.error('할일 생성 오류:', error);
+    res.status(500).json({ error: '할일 생성에 실패했습니다.' });
+  }
+});
+
+// 모든 할일 조회
+router.get('/', async (req, res) => {
+  try {
+    const todos = await Todo.find().sort({ createdAt: -1 });
+    res.json(todos);
+  } catch (error) {
+    console.error('할일 조회 오류:', error);
+    res.status(500).json({ error: '할일 조회에 실패했습니다.' });
+  }
+});
+
+// 특정 할일 조회
+router.get('/:id', async (req, res) => {
+  try {
+    const todo = await Todo.findById(req.params.id);
+    
+    if (!todo) {
+      return res.status(404).json({ error: '할일을 찾을 수 없습니다.' });
+    }
+    
+    res.json(todo);
+  } catch (error) {
+    console.error('할일 조회 오류:', error);
+    res.status(500).json({ error: '할일 조회에 실패했습니다.' });
+  }
+});
+
+// 할일 수정
+router.put('/:id', async (req, res) => {
+  try {
+    const { title, description, completed } = req.body;
+    
+    const todo = await Todo.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(title && { title }),
+        ...(description !== undefined && { description }),
+        ...(completed !== undefined && { completed }),
+        updatedAt: Date.now()
+      },
+      { new: true, runValidators: true }
+    );
+    
+    if (!todo) {
+      return res.status(404).json({ error: '할일을 찾을 수 없습니다.' });
+    }
+    
+    res.json(todo);
+  } catch (error) {
+    console.error('할일 수정 오류:', error);
+    res.status(500).json({ error: '할일 수정에 실패했습니다.' });
+  }
+});
+
+// 할일 삭제
+router.delete('/:id', async (req, res) => {
+  try {
+    const todo = await Todo.findByIdAndDelete(req.params.id);
+    
+    if (!todo) {
+      return res.status(404).json({ error: '할일을 찾을 수 없습니다.' });
+    }
+    
+    res.json({ message: '할일이 삭제되었습니다.', todo });
+  } catch (error) {
+    console.error('할일 삭제 오류:', error);
+    res.status(500).json({ error: '할일 삭제에 실패했습니다.' });
+  }
+});
+
+module.exports = router;
+
